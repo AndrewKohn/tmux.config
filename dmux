@@ -1,0 +1,62 @@
+#!/bin/bash
+# Script for tmux for a default tmux dev environment
+
+############################################
+
+# INFO :
+# Place file in .local/bin
+# Don't forget to run `chmod +x dmux` or allow the permission in properties
+# Run script in various ways:
+#   $ dmux
+#   $ dmux h new-session
+#   $ dmux new-session
+#   $ dmux new-session h
+#   $ dmux h
+
+############################################
+
+# Default init values
+SESSION_NAME="my_session"
+ORIENTATION="v"
+
+# Parse arguments
+is_orientation() {
+    [[ "$1" == "h" || "$1" == "v" ]]
+}
+
+for arg in "$@"; do
+    if is_orientation "$arg"; then
+        ORIENTATION="$arg"
+    else
+        SESSION_NAME="$arg"
+    fi
+done
+
+# Check if the session already exists and generate a unique name if necessary
+if tmux has-session -t $SESSION_NAME 2>/dev/null; then
+    COUNTER=1
+    while tmux has-session -t ${SESSION_NAME}_$COUNTER 2>/dev/null; do
+        COUNTER=$((COUNTER + 1))
+    done
+    SESSION_NAME=${SESSION_NAME}_$COUNTER
+fi
+
+# Create a new tmux session with the determined session name
+tmux new-session -d -s $SESSION_NAME
+
+# Split windows
+if [ "$ORIENTATION" = "h" ]; then
+    tmux split-window -h
+    tmux select-pane -t 1
+    tmux split-window -v
+else
+    tmux split-window -v
+    tmux select-pane -t 1
+    tmux split-window -h
+fi
+tmux select-pane -t 0
+
+# Maximize terminal upon execution
+# NOTE : Will open a new terminal.  Current terminal will still be present.
+gnome-terminal --maximize -- bash -c "tmux attach-session -t $SESSION_NAME"
+
